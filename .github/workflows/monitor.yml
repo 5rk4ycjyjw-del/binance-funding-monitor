@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
+    inputs:
+      test_notification:
+        description: Send one clearly labelled WeChat test notification
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -27,6 +33,7 @@ jobs:
         run: node run-monitor.mjs
         env:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          TEST_NOTIFICATION: ${{ inputs.test_notification }}
 
       - name: Save cooldown state
         if: always()
@@ -36,4 +43,3 @@ jobs:
           git add monitor-state.json
           git diff --cached --quiet || git commit -m "chore: update monitor state"
           git push
-
