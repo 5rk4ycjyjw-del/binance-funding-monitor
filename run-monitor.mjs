@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 
 import { runMonitor } from "./monitor-core.mjs";
+import { runTradifiMonitor } from "./tradifi-monitor.mjs";
 
 const stateUrl = new URL("./monitor-state.json", import.meta.url);
 let state;
@@ -30,4 +31,31 @@ const env = {
 
 const result = await runMonitor(env);
 console.log(JSON.stringify(result));
+const tradifiResult = await runTradifiMonitor(env);
+console.log(JSON.stringify({ tradifi: tradifiResult }));
 
+if (process.env.TEST_NOTIFICATION === "true") {
+  const content = [
+    "### Cloud monitor test passed",
+    "- Binance public market data check completed",
+    "- WeChat PushPlus notification channel responded",
+    "- Future messages are sent only for fully confirmed conditional setups",
+    "",
+    "This is a test notification, not a trading signal. Do not place an order from it.",
+  ].join("\n");
+  const response = await fetch("https://www.pushplus.plus/send", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      token: process.env.PUSHPLUS_TOKEN,
+      title: "Cloud monitor test passed",
+      content,
+      template: "markdown",
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || (body.code !== undefined && body.code !== 200)) {
+    throw new Error(`PushPlus test failed: ${response.status} ${JSON.stringify(body)}`);
+  }
+  console.log(JSON.stringify({ testNotification: "sent" }));
+}
