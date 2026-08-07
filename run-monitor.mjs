@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 
 import { runMonitor } from "./monitor-core.mjs";
 import { runTradifiMonitor } from "./tradifi-monitor.mjs";
+import { runOvernightTradifiMonitor } from "./overnight-tradifi-monitor.mjs";
 
 const stateUrl = new URL("./monitor-state.json", import.meta.url);
 let state;
@@ -33,6 +34,8 @@ const result = await runMonitor(env);
 console.log(JSON.stringify(result));
 const tradifiResult = await runTradifiMonitor(env);
 console.log(JSON.stringify({ tradifi: tradifiResult }));
+const overnightTradifiResult = await runOvernightTradifiMonitor(env);
+console.log(JSON.stringify({ overnightTradifi: overnightTradifiResult }));
 
 if (process.env.TEST_NOTIFICATION === "true") {
   const content = [

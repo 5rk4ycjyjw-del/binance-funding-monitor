@@ -3,6 +3,9 @@ const PUSHPLUS = "https://www.pushplus.plus/send";
 const MIN_QUOTE_VOLUME = 50_000_000;
 const FEE_SLIPPAGE_RATE = 0.0012;
 const COOLDOWN_MS = 60 * 60 * 1000;
+const FUNDING_HAIRCUT = 0.6;
+const MIN_PRICE_RR = 1.5;
+const MIN_COMBINED_RR = 1.8;
 
 const CHIP_AND_STORAGE = new Map([
   ["NVDAUSDT", "NVDA"], ["AMDUSDT", "AMD"], ["AVGOUSDT", "AVGO"],
@@ -14,10 +17,19 @@ const CHIP_AND_STORAGE = new Map([
 
 export async function runTradifiMonitor(env) {
   const previous = (await env.MONITOR_STATE.get("state", "json")) || { alerts: {} };
-  const [exchangeInfo, tickers, premiums, macro] = await Promise.all([
+  if (!isUsPremarket(new Date())) {
+    const now = new Date().toISOString();
+    await env.MONITOR_STATE.put("state", JSON.stringify({
+      ...previous,
+      tradifi: { lastRun: now, active: false, skipped: "outside_us_premarket", rankings: [], analyses: [] },
+    }));
+    return { ok: true, checked: 0, alerts: 0, skipped: "outside_us_premarket" };
+  }
+  const [exchangeInfo, tickers, premiums, fundingInfo, macro] = await Promise.all([
     api("/fapi/v1/exchangeInfo"),
     api("/fapi/v1/ticker/24hr"),
     api("/fapi/v1/premiumIndex"),
+    api("/fapi/v1/fundingInfo").catch(() => []),
     loadMacroContext(),
   ]);
 
@@ -26,6 +38,7 @@ export async function runTradifiMonitor(env) {
     .map((x) => x.symbol));
   const tickerBySymbol = new Map(tickers.map((x) => [x.symbol, x]));
   const premiumBySymbol = new Map(premiums.map((x) => [x.symbol, x]));
+  const intervalBySymbol = new Map(fundingInfo.map((x) => [x.symbol, number(x.fundingIntervalHours) || 8]));
 
   const top = [...CHIP_AND_STORAGE]
     .filter(([symbol]) => active.has(symbol))
@@ -40,6 +53,8 @@ export async function runTradifiMonitor(env) {
         mark: number(premium.markPrice),
         index: number(premium.indexPrice),
         funding: number(premium.lastFundingRate),
+        fundingIntervalHours: intervalBySymbol.get(symbol) || 8,
+        nextFundingTime: number(premium.nextFundingTime),
       };
     })
     .filter((x) => x.volume >= MIN_QUOTE_VOLUME && x.mark > 0 && x.index > 0)
@@ -56,7 +71,31 @@ export async function runTradifiMonitor(env) {
     const old = alerts[key];
     const materiallyChanged = old && Math.abs(result.entry - old.entry) / result.entry >= 0.008;
     if (old && now - old.timestamp < COOLDOWN_MS && !materiallyChanged) continue;
-    alerts[key] = { timestamp: now, entry: result.entry, trigger: result.trigger };
+    alerts[key] = {
+      timestamp: now,
+      symbol: result.symbol,
+      direction: result.side,
+      trigger: result.trigger,
+      entry: result.entry,
+      entryZone: [result.entryLow, result.entryHigh],
+      markPriceStop: result.stop,
+      targets: [result.target1, result.target2],
+      metrics: {
+        funding: result.funding,
+        fundingIntervalHours: result.fundingIntervalHours,
+        nextFundingTime: result.nextFundingTime,
+        conservativeFundingCarryRate: result.fundingCarryRate,
+        priceRr: result.priceRr,
+        rrWithFunding: result.rrWithFunding,
+        basis: result.basis,
+        equityGap: result.equityGap,
+        oiChange: result.oiChange,
+        globalRatio: result.globalRatio,
+        topRatio: result.topRatio,
+        takerRatio: result.takerRatio,
+      },
+      invalidation: "mark_price_reaches_stop_or_entry_confirmation_fails_before_entry",
+    };
     qualified.push(result);
   }
 
@@ -139,11 +178,22 @@ async function analyze(candidate, macro) {
     ? Math.max(...bars1h.slice(-48).map((x) => x.high))
     : Math.min(...bars1h.slice(-48).map((x) => x.low));
   const grossReward = longSetup ? structureTarget - current : current - structureTarget;
-  const rr = (grossReward - current * FEE_SLIPPAGE_RATE) / (risk + current * FEE_SLIPPAGE_RATE);
-  const requiredRr = macro.riskOff ? 2.3 : 1.8;
+  const netReward = grossReward - current * FEE_SLIPPAGE_RATE;
+  const netRisk = risk + current * FEE_SLIPPAGE_RATE;
+  const priceRr = netRisk > 0 ? netReward / netRisk : 0;
+  const fundingSupported = (longSetup && candidate.funding < 0) || (side === "SHORT" && candidate.funding > 0);
+  const millisecondsToFunding = candidate.nextFundingTime - Date.now();
+  const fundingWithinHoldingWindow = millisecondsToFunding > 0
+    && millisecondsToFunding <= candidate.fundingIntervalHours * 60 * 60 * 1000;
+  const fundingSettlementCount = fundingSupported && fundingWithinHoldingWindow ? 1 : 0;
+  const fundingCarryRate = Math.abs(candidate.funding) * FUNDING_HAIRCUT * fundingSettlementCount;
+  const fundingCarryPerUnit = current * fundingCarryRate;
+  const rrWithFunding = netRisk > 0 ? (netReward + fundingCarryPerUnit) / netRisk : 0;
+  const requiredCombinedRr = macro.riskOff ? 2.3 : MIN_COMBINED_RR;
 
   const qualified = Boolean(side) && premarket && equityFresh && equitySupports && basisSupports
-    && confirmation && rsiUsable && positioningSupports && oiSupports && rr >= requiredRr;
+    && confirmation && rsiUsable && positioningSupports && oiSupports
+    && priceRr >= MIN_PRICE_RR && rrWithFunding >= requiredCombinedRr;
 
   const result = {
     symbol: candidate.symbol,
@@ -151,6 +201,8 @@ async function analyze(candidate, macro) {
     side,
     qualified,
     funding: candidate.funding,
+    fundingIntervalHours: candidate.fundingIntervalHours,
+    nextFundingTime: candidate.nextFundingTime,
     basis,
     equityPrice: equity?.price ?? null,
     equityGap,
@@ -160,8 +212,12 @@ async function analyze(candidate, macro) {
     globalRatio,
     topRatio,
     takerRatio,
-    rr,
-    checks: { premarket, equitySupports, basisSupports, confirmation, rsiUsable, positioningSupports, oiSupports },
+    priceRr,
+    rrWithFunding,
+    fundingCarryRate,
+    fundingCarryPerUnit,
+    fundingSettlementCount,
+    checks: { premarket, equitySupports, basisSupports, confirmation, rsiUsable, positioningSupports, oiSupports, priceRr: priceRr >= MIN_PRICE_RR, rrWithFunding: rrWithFunding >= requiredCombinedRr },
   };
   if (!qualified) return result;
 
@@ -260,10 +316,13 @@ async function sendPushPlus(token, signal) {
     `- 止盈2：${fmt(signal.target2)}`,
     `- 币安/股票价差：${pct(signal.equityGap)}`,
     `- 标记/指数基差：${pct(signal.basis)}`,
+    `- 资金费率：${pct(signal.funding)} / ${signal.fundingIntervalHours}小时`,
+    `- 保守资金费收益：${pct(signal.fundingCarryRate)}（按下一次结算、60%折扣；每1000 USDT名义仓位约 ${fmt(signal.fundingCarryRate * 1000)} USDT）`,
     `- 30分钟持仓量变化：${pct(signal.oiChange)}`,
     `- WTI：${fmt(macro.oilPrice)}，1小时 ${pct(macro.oilChange1h)}`,
     `- 地缘风险新闻数：${macro.geopoliticalHeadlineCount}`,
-    `- 首目标预估盈亏比：${signal.rr.toFixed(2)}`,
+    `- 首目标价格本身RR：${signal.priceRr.toFixed(2)}；含资金费RR：${signal.rrWithFunding.toFixed(2)}`,
+    "- 杠杆只放大保证金口径收益和爆仓风险，不增加同一名义仓位的资金费；资金费可能变化，不能视为保证收益。",
     "",
     "这是盘前条件观察信号，不是订单或收益保证。股票休市价格可能滞后，合约风险高，请自行确认。",
   ].join("\n");
@@ -333,7 +392,14 @@ async function api(path) {
 }
 
 function compact(x) {
-  return { symbol: x.symbol, equityTicker: x.equityTicker, volume: x.volume, change24h: x.change24h, funding: x.funding };
+  return {
+    symbol: x.symbol,
+    equityTicker: x.equityTicker,
+    volume: x.volume,
+    change24h: x.change24h,
+    funding: x.funding,
+    fundingIntervalHours: x.fundingIntervalHours,
+  };
 }
 
 function decodeXml(value) {

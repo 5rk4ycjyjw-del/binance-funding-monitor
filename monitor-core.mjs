@@ -12,6 +12,9 @@ const PUSHPLUS = "https://www.pushplus.plus/send";
 const MIN_QUOTE_VOLUME = 50_000_000;
 const COOLDOWN_MS = 60 * 60 * 1000;
 const FEE_SLIPPAGE_RATE = 0.0012;
+const FUNDING_HAIRCUT = 0.6;
+const MIN_PRICE_RR = 1.5;
+const MIN_COMBINED_RR = 1.8;
 
 export default {
   async scheduled(_event, env, ctx) {
@@ -85,6 +88,7 @@ async function runMonitor(env) {
         basis: number(x.indexPrice) ? (number(x.markPrice) / number(x.indexPrice)) - 1 : 0,
         volume: volumeBySymbol.get(x.symbol),
         fundingIntervalHours: intervalBySymbol.get(x.symbol) || 8,
+        nextFundingTime: number(x.nextFundingTime),
       }));
 
     const positive = liquid.filter((x) => x.funding > 0).sort((a, b) => b.funding - a.funding).slice(0, 3);
@@ -107,7 +111,30 @@ async function runMonitor(env) {
       const old = alerts[key];
       const materialChange = old && Math.abs(result.entry - old.entry) / result.entry >= 0.008;
       if (old && now - old.timestamp < COOLDOWN_MS && !materialChange) continue;
-      alerts[key] = { timestamp: now, entry: result.entry, trigger: result.trigger };
+      alerts[key] = {
+        timestamp: now,
+        symbol: result.symbol,
+        direction: result.side,
+        trigger: result.trigger,
+        entry: result.entry,
+        entryZone: [result.entryLow, result.entryHigh],
+        markPriceStop: result.stop,
+        targets: [result.target1, result.target2],
+        metrics: {
+          funding: result.funding,
+          fundingIntervalHours: result.fundingIntervalHours,
+          nextFundingTime: result.nextFundingTime,
+          conservativeFundingCarryRate: result.fundingCarryRate,
+          priceRr: result.priceRr,
+          rrWithFunding: result.rrWithFunding,
+          basis: result.basis,
+          oiChange: result.oiChange,
+          globalRatio: result.globalRatio,
+          topRatio: result.topRatio,
+          takerRatio: result.takerRatio,
+        },
+        invalidation: "mark_price_reaches_stop_or_entry_confirmation_fails_before_entry",
+      };
       qualified.push(result);
     }
 
@@ -209,10 +236,19 @@ async function analyze(candidate) {
   const grossReward = longSetup ? structureTarget - current : current - structureTarget;
   const netReward = grossReward - current * FEE_SLIPPAGE_RATE;
   const netRisk = risk + current * FEE_SLIPPAGE_RATE;
-  const rr = netRisk > 0 ? netReward / netRisk : 0;
+  const priceRr = netRisk > 0 ? netReward / netRisk : 0;
+  // Count only one upcoming settlement and haircut it so funding cannot rescue a weak setup.
+  const fundingSupported = (longSetup && candidate.funding < 0) || (!longSetup && candidate.funding > 0);
+  const millisecondsToFunding = candidate.nextFundingTime - Date.now();
+  const fundingWithinHoldingWindow = millisecondsToFunding > 0
+    && millisecondsToFunding <= candidate.fundingIntervalHours * 60 * 60 * 1000;
+  const fundingSettlementCount = fundingSupported && fundingWithinHoldingWindow ? 1 : 0;
+  const fundingCarryRate = Math.abs(candidate.funding) * FUNDING_HAIRCUT * fundingSettlementCount;
+  const fundingCarryPerUnit = current * fundingCarryRate;
+  const rrWithFunding = netRisk > 0 ? (netReward + fundingCarryPerUnit) / netRisk : 0;
 
   const qualified = abnormalFunding && basisSupports && trendAligned && rsiUsable && confirmation
-    && positioningSupports && oiSupports && rr >= 1.8;
+    && positioningSupports && oiSupports && priceRr >= MIN_PRICE_RR && rrWithFunding >= MIN_COMBINED_RR;
 
   if (!qualified) {
     return {
@@ -225,8 +261,14 @@ async function analyze(candidate) {
       globalRatio,
       topRatio,
       takerRatio,
-      rr,
-      checks: { abnormalFunding, basisSupports, trendAligned, rsiUsable, confirmation, positioningSupports, oiSupports },
+      priceRr,
+      rrWithFunding,
+      fundingCarryRate,
+      fundingCarryPerUnit,
+      fundingSettlementCount,
+      fundingIntervalHours: candidate.fundingIntervalHours,
+      nextFundingTime: candidate.nextFundingTime,
+      checks: { abnormalFunding, basisSupports, trendAligned, rsiUsable, confirmation, positioningSupports, oiSupports, priceRr: priceRr >= MIN_PRICE_RR, rrWithFunding: rrWithFunding >= MIN_COMBINED_RR },
     };
   }
 
@@ -244,9 +286,17 @@ async function analyze(candidate) {
     target2,
     funding: candidate.funding,
     fundingIntervalHours: candidate.fundingIntervalHours,
+    nextFundingTime: candidate.nextFundingTime,
     basis: candidate.basis,
     oiChange,
-    rr,
+    globalRatio,
+    topRatio,
+    takerRatio,
+    priceRr,
+    rrWithFunding,
+    fundingCarryRate,
+    fundingCarryPerUnit,
+    fundingSettlementCount,
     trigger: longSetup ? "15分钟突破或回踩企稳" : "15分钟跌破或反抽受阻",
     reason: longSetup
       ? "负资金费率拥挤，趋势转强且持仓量、主动买盘确认"
@@ -270,8 +320,10 @@ async function sendPushPlus(token, signal) {
     `- 止盈1：${fmt(signal.target1)}`,
     `- 止盈2：${fmt(signal.target2)}`,
     `- 资金费率：${pct(signal.funding)} / ${signal.fundingIntervalHours}小时`,
+    `- 保守资金费收益：${pct(signal.fundingCarryRate)}（按下一次结算、60%折扣；每1000 USDT名义仓位约 ${fmt(signal.fundingCarryRate * 1000)} USDT）`,
     `- 30分钟持仓量变化：${pct(signal.oiChange)}`,
-    `- 首目标预估盈亏比：${signal.rr.toFixed(2)}`,
+    `- 首目标价格本身RR：${signal.priceRr.toFixed(2)}；含资金费RR：${signal.rrWithFunding.toFixed(2)}`,
+    "- 杠杆只放大保证金口径收益和爆仓风险，不增加同一名义仓位的资金费；资金费可能变化，不能视为保证收益。",
     `- 时间：${time}（Asia/Shanghai）`,
     `- 原因：${signal.reason}`,
     "",
@@ -346,7 +398,7 @@ function atr(bars, period) {
 }
 
 function compactCandidate(x) {
-  return { symbol: x.symbol, funding: x.funding, basis: x.basis, volume: x.volume, fundingIntervalHours: x.fundingIntervalHours };
+  return { symbol: x.symbol, funding: x.funding, basis: x.basis, volume: x.volume, fundingIntervalHours: x.fundingIntervalHours, nextFundingTime: x.nextFundingTime };
 }
 
 function change(first, last) {
@@ -370,4 +422,3 @@ function fmt(value) {
 }
 
 export { runMonitor };
-
