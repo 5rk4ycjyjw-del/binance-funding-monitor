@@ -139,6 +139,7 @@ async function runMonitor(env) {
     }
 
     const state = {
+      ...previous,
       lastRun: new Date(now).toISOString(),
       durationMs: Date.now() - startedAt,
       rankings: {

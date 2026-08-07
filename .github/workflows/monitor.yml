@@ -10,6 +10,21 @@ on:
         required: false
         default: false
         type: boolean
+      extreme_notification:
+        description: 转发本地极端行情模型通知
+        required: false
+        default: false
+        type: boolean
+      notification_title:
+        description: 极端行情通知标题
+        required: false
+        default: ""
+        type: string
+      notification_content_b64:
+        description: Base64 编码的极端行情通知正文
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: write
@@ -31,11 +46,38 @@ jobs:
 
       - name: Run monitor
         id: monitor
+        if: ${{ inputs.extreme_notification != true }}
         continue-on-error: ${{ inputs.test_notification == true }}
         run: node run-monitor.mjs
         env:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
           TEST_NOTIFICATION: ${{ inputs.test_notification }}
+
+      - name: 转发极端行情模型通知
+        if: ${{ inputs.extreme_notification == true }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token = process.env.PUSHPLUS_TOKEN;
+          const title = process.env.NOTIFICATION_TITLE;
+          const encoded = process.env.NOTIFICATION_CONTENT_B64;
+          if (!token) throw new Error("PUSHPLUS_TOKEN is not configured");
+          if (!title || !encoded) throw new Error("Extreme notification payload is incomplete");
+          const content = Buffer.from(encoded, "base64").toString("utf8");
+          const response = await fetch("https://www.pushplus.plus/send", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ token, title, content, template: "markdown" }),
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok || (body.code !== undefined && body.code !== 200)) {
+            throw new Error(`PushPlus extreme notification failed: ${response.status} ${JSON.stringify(body)}`);
+          }
+          console.log("PushPlus 极端行情通知已接收");
+          NODE
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          NOTIFICATION_TITLE: ${{ inputs.notification_title }}
+          NOTIFICATION_CONTENT_B64: ${{ inputs.notification_content_b64 }}
 
       - name: 发送云端测试通知
         if: ${{ inputs.test_notification == true }}
