@@ -14,7 +14,8 @@ export async function runExtremeMoveMonitor(env, options = {}) {
   const now = options.now ?? Date.now();
   const sendNotification = options.sendNotification ?? true;
   const previous = (await env.MONITOR_STATE.get("state", "json")) || {};
-  const priorModel = previous.extremeMove || {};
+  const usesSnakeCaseState = Boolean(previous.extreme_move && !previous.extremeMove);
+  const priorModel = previous.extremeMove || normalizeSnakeCaseState(previous.extreme_move);
   const nextDueAt = Number(priorModel.lastNotificationAt || 0) + NOTIFICATION_INTERVAL_MS;
 
   if (Number(priorModel.lastNotificationAt || 0) > 0 && now < nextDueAt) {
@@ -84,10 +85,11 @@ export async function runExtremeMoveMonitor(env, options = {}) {
     matches,
   };
 
-  await env.MONITOR_STATE.put("state", JSON.stringify({
-    ...previous,
-    extremeMove: nextModel,
-  }));
+  await env.MONITOR_STATE.put("state", JSON.stringify(mergeModelState(
+    previous,
+    nextModel,
+    usesSnakeCaseState,
+  )));
 
   if (!matches.length) {
     return { ok: true, due: true, alerts: 0, matches: [], checkedAt };
@@ -99,10 +101,11 @@ export async function runExtremeMoveMonitor(env, options = {}) {
 
   await sendPushPlus(env.PUSHPLUS_TOKEN, notification);
   nextModel.lastNotificationAt = now;
-  await env.MONITOR_STATE.put("state", JSON.stringify({
-    ...previous,
-    extremeMove: nextModel,
-  }));
+  await env.MONITOR_STATE.put("state", JSON.stringify(mergeModelState(
+    previous,
+    nextModel,
+    usesSnakeCaseState,
+  )));
 
   return {
     ok: true,
@@ -134,6 +137,7 @@ function buildNotification(matches, now) {
   const lines = matches.flatMap((item) => [
     `### ${item.symbol}`,
     `- 资金费率：${pct(item.fundingRate)} / ${item.fundingIntervalHours}小时`,
+    `- 下次资金费结算：${formatShanghaiTime(item.nextFundingTime)}`,
     `- 24小时涨跌幅：${item.priceChangePercent24h.toFixed(2)}%`,
     `- 标记价 / 指数价：${fmt(item.markPrice)} / ${fmt(item.indexPrice)}`,
     `- 标记/指数基差：${pct(item.basis)}`,
@@ -148,6 +152,34 @@ function buildNotification(matches, now) {
       "- 条件：|资金费率| >= 0.5%，且 |24小时涨跌幅| >= 50%。",
       "- 这是行情异常提醒，不代表做多或做空建议，不是订单，也不保证收益。",
     ].join("\n"),
+  };
+}
+
+function normalizeSnakeCaseState(model = {}) {
+  const parsedNotificationTime = Date.parse(model.last_notification_at || "");
+  return {
+    lastNotificationAt: Number.isFinite(parsedNotificationTime) ? parsedNotificationTime : 0,
+    matches: model.matches || [],
+  };
+}
+
+function mergeModelState(previous, nextModel, usesSnakeCaseState) {
+  if (!usesSnakeCaseState) return { ...previous, extremeMove: nextModel };
+  return {
+    ...previous,
+    extreme_move: {
+      ...previous.extreme_move,
+      last_check_at: nextModel.lastCheckAt,
+      last_notification_at: nextModel.lastNotificationAt
+        ? new Date(nextModel.lastNotificationAt).toISOString()
+        : null,
+      thresholds: {
+        absolute_funding_rate: nextModel.thresholds.absoluteFundingRate,
+        absolute_price_change_percent_24h: nextModel.thresholds.absolutePriceChangePercent24h,
+        notification_interval_minutes: nextModel.thresholds.notificationIntervalMinutes,
+      },
+      matches: nextModel.matches,
+    },
   };
 }
 
@@ -207,3 +239,14 @@ function formatVolume(value) {
   return value.toFixed(0);
 }
 
+function formatShanghaiTime(timestamp) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(timestamp));
+}
