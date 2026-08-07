@@ -1,5 +1,5 @@
 {
   "alerts": {},
-  "lastRun": null
+  "lastRun": "2026-08-07T00:51:27.905Z",
+  "lastError": "Binance /fapi/v1/exchangeInfo returned 451"
 }
-
