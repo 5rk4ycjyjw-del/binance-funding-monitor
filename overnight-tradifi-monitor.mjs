@@ -1,4 +1,11 @@
-const BINANCE = "https://fapi.binance.com";
+const BINANCE_HOSTS = [
+  "https://fapi.binance.com",
+  "https://fapi1.binance.com",
+  "https://fapi2.binance.com",
+  "https://fapi3.binance.com",
+  "https://www.binance.com",
+  "https://api.binance.com",
+];
 const PUSHPLUS = "https://www.pushplus.plus/send";
 const MIN_QUOTE_VOLUME = 50_000_000;
 const FEE_SLIPPAGE_RATE = 0.0012;
@@ -342,7 +349,19 @@ function indicators(bars) { const closes = bars.map((x) => x.close); return { cl
 function ema(values, period) { const multiplier = 2 / (period + 1); let value = values.slice(0, period).reduce((a, b) => a + b, 0) / period; for (const next of values.slice(period)) value = next * multiplier + value * (1 - multiplier); return value; }
 function rsi(values, period) { let gain = 0; let loss = 0; for (let index = values.length - period; index < values.length; index += 1) { const delta = values[index] - values[index - 1]; if (delta >= 0) gain += delta; else loss -= delta; } return loss === 0 ? 100 : 100 - 100 / (1 + gain / loss); }
 function atr(bars, period) { const ranges = []; for (let index = bars.length - period; index < bars.length; index += 1) { const previous = bars[index - 1].close; ranges.push(Math.max(bars[index].high - bars[index].low, Math.abs(bars[index].high - previous), Math.abs(bars[index].low - previous))); } return ranges.reduce((a, b) => a + b, 0) / ranges.length; }
-async function api(path) { const response = await fetch(`${BINANCE}${path}`, { headers: { "user-agent": "BinanceFundingMonitor/1.0" } }); if (!response.ok) throw new Error(`Binance ${path} returned ${response.status}`); return response.json(); }
+async function api(path) {
+  const failures = [];
+  for (const host of BINANCE_HOSTS) {
+    try {
+      const response = await fetch(`${host}${path}`, { headers: { "user-agent": "BinanceFundingMonitor/1.0" } });
+      if (response.ok) return response.json();
+      failures.push(`${host}:${response.status}`);
+    } catch (error) {
+      failures.push(`${host}:${String(error?.message || error)}`);
+    }
+  }
+  throw new Error(`Binance ${path} failed across public hosts (${failures.join(", ")})`);
+}
 function compact(x) { return { symbol: x.symbol, equityTicker: x.equityTicker, volume: x.volume, funding: x.funding, fundingIntervalHours: x.fundingIntervalHours }; }
 function nearestPoint(points, timestamp) { return points.reduce((best, point) => Math.abs(point.timestamp - timestamp) < Math.abs(best.timestamp - timestamp) ? point : best, points[0]); }
 function decodeXml(value) { return value.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim(); }

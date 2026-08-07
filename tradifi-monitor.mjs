@@ -1,4 +1,11 @@
-const BINANCE = "https://fapi.binance.com";
+const BINANCE_HOSTS = [
+  "https://fapi.binance.com",
+  "https://fapi1.binance.com",
+  "https://fapi2.binance.com",
+  "https://fapi3.binance.com",
+  "https://www.binance.com",
+  "https://api.binance.com",
+];
 const PUSHPLUS = "https://www.pushplus.plus/send";
 const MIN_QUOTE_VOLUME = 50_000_000;
 const FEE_SLIPPAGE_RATE = 0.0012;
@@ -386,9 +393,17 @@ function atr(bars, period) {
 }
 
 async function api(path) {
-  const response = await fetch(`${BINANCE}${path}`, { headers: { "user-agent": "BinanceFundingMonitor/1.0" } });
-  if (!response.ok) throw new Error(`Binance ${path} returned ${response.status}`);
-  return response.json();
+  const failures = [];
+  for (const host of BINANCE_HOSTS) {
+    try {
+      const response = await fetch(`${host}${path}`, { headers: { "user-agent": "BinanceFundingMonitor/1.0" } });
+      if (response.ok) return response.json();
+      failures.push(`${host}:${response.status}`);
+    } catch (error) {
+      failures.push(`${host}:${String(error?.message || error)}`);
+    }
+  }
+  throw new Error(`Binance ${path} failed across public hosts (${failures.join(", ")})`);
 }
 
 function compact(x) {

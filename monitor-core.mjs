@@ -341,11 +341,19 @@ async function sendPushPlus(token, signal) {
 }
 
 async function api(path) {
-  const response = await fetch(`${BINANCE}${path}`, {
-    headers: { "user-agent": "BinanceFundingMonitor/1.0" },
-  });
-  if (!response.ok) throw new Error(`Binance ${path} returned ${response.status}`);
-  return response.json();
+  const failures = [];
+  for (const host of BINANCE_HOSTS) {
+    try {
+      const response = await fetch(`${host}${path}`, {
+        headers: { "user-agent": "BinanceFundingMonitor/1.0" },
+      });
+      if (response.ok) return response.json();
+      failures.push(`${host}:${response.status}`);
+    } catch (error) {
+      failures.push(`${host}:${String(error?.message || error)}`);
+    }
+  }
+  throw new Error(`Binance ${path} failed across public hosts (${failures.join(", ")})`);
 }
 
 function candles(rows) {
