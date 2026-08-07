@@ -397,7 +397,7 @@ async function api(path) {
   for (const host of BINANCE_HOSTS) {
     try {
       const response = await fetch(`${host}${path}`, { headers: { "user-agent": "BinanceFundingMonitor/1.0" } });
-      if (response.ok) return response.json();
+      if (response.ok) return await response.json();
       failures.push(`${host}:${response.status}`);
     } catch (error) {
       failures.push(`${host}:${String(error?.message || error)}`);
