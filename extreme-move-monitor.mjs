@@ -17,16 +17,7 @@ export async function runExtremeMoveMonitor(env, options = {}) {
   const usesSnakeCaseState = Boolean(previous.extreme_move && !previous.extremeMove);
   const priorModel = previous.extremeMove || normalizeSnakeCaseState(previous.extreme_move);
   const nextDueAt = Number(priorModel.lastNotificationAt || 0) + NOTIFICATION_INTERVAL_MS;
-
-  if (Number(priorModel.lastNotificationAt || 0) > 0 && now < nextDueAt) {
-    return {
-      ok: true,
-      due: false,
-      alerts: 0,
-      nextDueAt,
-      matches: priorModel.matches || [],
-    };
-  }
+  const notificationDue = Number(priorModel.lastNotificationAt || 0) === 0 || now >= nextDueAt;
 
   const [exchangeInfo, tickers, premiums, fundingInfo] = await Promise.all([
     api("/fapi/v1/exchangeInfo"),
@@ -92,7 +83,11 @@ export async function runExtremeMoveMonitor(env, options = {}) {
   )));
 
   if (!matches.length) {
-    return { ok: true, due: true, alerts: 0, matches: [], checkedAt };
+    return { ok: true, due: notificationDue, alerts: 0, matches: [], checkedAt, nextDueAt };
+  }
+
+  if (!notificationDue) {
+    return { ok: true, due: false, alerts: 0, matches, notification, checkedAt, nextDueAt };
   }
 
   if (!sendNotification) {
