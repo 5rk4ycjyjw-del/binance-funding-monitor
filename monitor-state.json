@@ -1,5 +1,5 @@
 {
   "alerts": {},
-  "lastRun": "2026-08-07T09:38:17.255Z",
+  "lastRun": "2026-08-07T12:02:48.972Z",
   "lastError": "Binance /fapi/v1/exchangeInfo failed across public hosts (https://fapi.binance.com:451, https://fapi1.binance.com:Unexpected end of JSON input, https://fapi2.binance.com:Unexpected end of JSON input, https://fapi3.binance.com:Unexpected end of JSON input, https://www.binance.com:451, https://api.binance.com:451, https://binance.com:451)"
 }
