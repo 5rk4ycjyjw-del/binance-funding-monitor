@@ -30,10 +30,38 @@ jobs:
           node-version: "22"
 
       - name: Run monitor
+        id: monitor
+        continue-on-error: ${{ inputs.test_notification == true }}
         run: node run-monitor.mjs
         env:
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
           TEST_NOTIFICATION: ${{ inputs.test_notification }}
+
+      - name: Send cloud test notification
+        if: ${{ inputs.test_notification == true }}
+        run: |
+          node --input-type=module <<'NODE'
+          const token = process.env.PUSHPLUS_TOKEN;
+          if (!token) throw new Error("PUSHPLUS_TOKEN is not configured");
+          const content = [
+            "### Cloud monitor test passed",
+            "- PushPlus WeChat channel accepted this message",
+            "- This is a cloud monitor test, not a trading signal and not an order",
+            "- Binance market-data failures, if any, are recorded separately from this channel test",
+          ].join("\\n");
+          const response = await fetch("https://www.pushplus.plus/send", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ token, title: "Cloud monitor test passed", content, template: "markdown" }),
+          });
+          const body = await response.json().catch(() => ({}));
+          if (!response.ok || (body.code !== undefined && body.code !== 200)) {
+            throw new Error(`PushPlus test failed: ${response.status} ${JSON.stringify(body)}`);
+          }
+          console.log("PushPlus cloud test accepted");
+          NODE
+        env:
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
 
       - name: Save cooldown state
         if: always()
