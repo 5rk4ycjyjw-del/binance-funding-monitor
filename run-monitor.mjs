@@ -3,7 +3,6 @@ import fs from "node:fs/promises";
 import { runMonitor } from "./monitor-core.mjs";
 import { runTradifiMonitor } from "./tradifi-monitor.mjs";
 import { runOvernightTradifiMonitor } from "./overnight-tradifi-monitor.mjs";
-import { runExtremeMoveMonitor } from "./extreme-move-monitor.mjs";
 
 const stateUrl = new URL("./monitor-state.json", import.meta.url);
 let state;
@@ -37,5 +36,3 @@ const tradifiResult = await runTradifiMonitor(env);
 console.log(JSON.stringify({ tradifi: tradifiResult }));
 const overnightTradifiResult = await runOvernightTradifiMonitor(env);
 console.log(JSON.stringify({ overnightTradifi: overnightTradifiResult }));
-const extremeMoveResult = await runExtremeMoveMonitor(env);
-console.log(JSON.stringify({ extremeMove: extremeMoveResult }));
