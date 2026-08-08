@@ -1,5 +1,5 @@
 {
   "alerts": {},
-  "lastRun": "2026-08-08T10:03:31.617Z",
-  "lastError": "Binance /fapi/v1/ticker/24hr failed across public hosts (https://fapi.binance.com:451, https://fapi1.binance.com:Unexpected end of JSON input, https://fapi2.binance.com:Unexpected end of JSON input, https://fapi3.binance.com:Unexpected end of JSON input, https://www.binance.com:451, https://api.binance.com:451, https://binance.com:451)"
+  "lastRun": "2026-08-08T11:16:45.018Z",
+  "lastError": "Binance /fapi/v1/exchangeInfo failed across public hosts (https://fapi.binance.com:451, https://fapi1.binance.com:Unexpected end of JSON input, https://fapi2.binance.com:Unexpected end of JSON input, https://fapi3.binance.com:Unexpected end of JSON input, https://www.binance.com:451, https://api.binance.com:451, https://binance.com:451)"
 }
