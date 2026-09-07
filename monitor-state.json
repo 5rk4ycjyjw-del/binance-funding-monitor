@@ -62,86 +62,81 @@
       "invalidation": "mark_price_reaches_stop_or_entry_confirmation_fails_before_entry"
     }
   },
-  "lastRun": "2026-09-07T09:46:33.826Z",
+  "lastRun": "2026-09-07T15:19:05.723Z",
   "lastError": "Binance /fapi/v1/ticker/24hr failed across public hosts (https://fapi.binance.com:451, https://fapi1.binance.com:Unexpected end of JSON input, https://fapi2.binance.com:Unexpected end of JSON input, https://fapi3.binance.com:Unexpected end of JSON input, https://www.binance.com:451, https://api.binance.com:451, https://binance.com:451)",
-  "durationMs": 8425,
+  "durationMs": 8054,
   "rankings": {
     "positive": [
       {
-        "symbol": "牛来USDT",
-        "funding": 0.00056819,
-        "basis": 0.0019265190726269754,
-        "volume": 99629511.75047,
+        "symbol": "UAIUSDT",
+        "funding": 0.00074856,
+        "basis": 0.0023181862945438336,
+        "volume": 143597254.0219,
         "fundingIntervalHours": 4,
-        "nextFundingTime": 1788782400000
+        "nextFundingTime": 1788796800000
       },
       {
-        "symbol": "UAIUSDT",
-        "funding": 0.00055917,
-        "basis": 0.0037961780681454727,
-        "volume": 128794959.1119,
+        "symbol": "牛来USDT",
+        "funding": 0.00054965,
+        "basis": 0.0008318472963073642,
+        "volume": 90723053.76134,
         "fundingIntervalHours": 4,
-        "nextFundingTime": 1788782400000
+        "nextFundingTime": 1788796800000
       },
       {
         "symbol": "PONSUSDT",
-        "funding": 0.00054729,
-        "basis": 0.001805402039965598,
-        "volume": 201840088.8729,
+        "funding": 0.0003627,
+        "basis": 0.0008829133368881692,
+        "volume": 192071041.3173,
         "fundingIntervalHours": 4,
-        "nextFundingTime": 1788782400000
+        "nextFundingTime": 1788796800000
       }
     ],
     "negative": [
       {
-        "symbol": "ORCAUSDT",
-        "funding": -0.0043371,
-        "basis": -0.008108495690172246,
-        "volume": 74788931.7948,
-        "fundingIntervalHours": 4,
-        "nextFundingTime": 1788782400000
-      },
-      {
         "symbol": "HEMIUSDT",
-        "funding": -0.00255797,
-        "basis": -0.009794412254242713,
-        "volume": 81553840.575215,
+        "funding": -0.00228789,
+        "basis": -0.005001757248358496,
+        "volume": 87437917.127728,
         "fundingIntervalHours": 4,
-        "nextFundingTime": 1788782400000
+        "nextFundingTime": 1788796800000
       },
       {
-        "symbol": "AKEUSDT",
-        "funding": -0.00125544,
-        "basis": -0.0024928807153022925,
-        "volume": 142373494.1097322,
+        "symbol": "ORCAUSDT",
+        "funding": -0.00195215,
+        "basis": -0.0029236940491037533,
+        "volume": 76810098.2743,
         "fundingIntervalHours": 4,
-        "nextFundingTime": 1788782400000
+        "nextFundingTime": 1788796800000
+      },
+      {
+        "symbol": "CFGUSDT",
+        "funding": -0.00084758,
+        "basis": -0.002750981195192015,
+        "volume": 60484479.8035,
+        "fundingIntervalHours": 4,
+        "nextFundingTime": 1788796800000
       }
     ]
   },
   "analyses": [
     {
-      "symbol": "牛来USDT",
-      "side": "SHORT",
-      "qualified": false
-    },
-    {
       "symbol": "UAIUSDT",
       "side": "SHORT",
       "qualified": false,
-      "funding": 0.00055917,
-      "basis": 0.0037961780681454727,
-      "oiChange": 0.013540690074290263,
-      "globalRatio": 0.9897,
-      "topRatio": 0.9246,
-      "takerRatio": 1.0716,
-      "priceRr": 5.173393674602185,
-      "rrWithFunding": 5.179133167509938,
-      "fundingCarryRate": 0.000335502,
-      "fundingCarryPerUnit": 0.000213714774,
+      "funding": 0.00074856,
+      "basis": 0.0023181862945438336,
+      "oiChange": 0.023563686986550536,
+      "globalRatio": 0.8843,
+      "topRatio": 0.8369,
+      "takerRatio": 0.8873,
+      "priceRr": 12.98252971228403,
+      "rrWithFunding": 12.999964665288813,
+      "fundingCarryRate": 0.000449136,
+      "fundingCarryPerUnit": 0.0003052328256,
       "fundingSettlementCount": 1,
       "fundingIntervalHours": 4,
-      "nextFundingTime": 1788782400000,
+      "nextFundingTime": 1788796800000,
       "checks": {
         "abnormalFunding": true,
         "basisSupports": true,
@@ -155,27 +150,61 @@
       }
     },
     {
+      "symbol": "牛来USDT",
+      "side": "SHORT",
+      "qualified": false
+    },
+    {
       "symbol": "PONSUSDT",
       "side": "SHORT",
       "qualified": false
     },
     {
+      "symbol": "HEMIUSDT",
+      "side": "LONG",
+      "qualified": false,
+      "funding": -0.00228789,
+      "basis": -0.005001757248358496,
+      "oiChange": 0.004783620754132745,
+      "globalRatio": 0.8012,
+      "topRatio": 1.0695,
+      "takerRatio": 0.9226,
+      "priceRr": 24.250644063765524,
+      "rrWithFunding": 24.31597469291288,
+      "fundingCarryRate": 0.0013727339999999998,
+      "fundingCarryPerUnit": 0.000011804139666,
+      "fundingSettlementCount": 1,
+      "fundingIntervalHours": 4,
+      "nextFundingTime": 1788796800000,
+      "checks": {
+        "abnormalFunding": true,
+        "basisSupports": true,
+        "trendAligned": false,
+        "rsiUsable": false,
+        "confirmation": false,
+        "positioningSupports": false,
+        "oiSupports": true,
+        "priceRr": true,
+        "rrWithFunding": true
+      }
+    },
+    {
       "symbol": "ORCAUSDT",
       "side": "LONG",
       "qualified": false,
-      "funding": -0.0043371,
-      "basis": -0.008108495690172246,
-      "oiChange": -0.002162537850756152,
-      "globalRatio": 1.3574,
-      "topRatio": 1.4114,
-      "takerRatio": 1.4215,
-      "priceRr": 4.864348399417973,
-      "rrWithFunding": 4.977573096466899,
-      "fundingCarryRate": 0.00260226,
-      "fundingCarryPerUnit": 0.00398406006,
+      "funding": -0.00195215,
+      "basis": -0.0029236940491037533,
+      "oiChange": -0.0038612397974205903,
+      "globalRatio": 1.1363,
+      "topRatio": 1.0877,
+      "takerRatio": 0.3924,
+      "priceRr": 5.613071442717161,
+      "rrWithFunding": 5.675940243788369,
+      "fundingCarryRate": 0.00117129,
+      "fundingCarryPerUnit": 0.00180495789,
       "fundingSettlementCount": 1,
       "fundingIntervalHours": 4,
-      "nextFundingTime": 1788782400000,
+      "nextFundingTime": 1788796800000,
       "checks": {
         "abnormalFunding": true,
         "basisSupports": true,
@@ -189,190 +218,46 @@
       }
     },
     {
-      "symbol": "HEMIUSDT",
+      "symbol": "CFGUSDT",
       "side": "LONG",
       "qualified": false,
-      "funding": -0.00255797,
-      "basis": -0.009794412254242713,
-      "oiChange": -0.002967422854699975,
-      "globalRatio": 0.8529,
-      "topRatio": 1.2085,
-      "takerRatio": 1.3964,
-      "priceRr": 9.199923019448923,
-      "rrWithFunding": 9.221306384097383,
-      "fundingCarryRate": 0.001534782,
-      "fundingCarryPerUnit": 0.000013222146929999998,
+      "funding": -0.00084758,
+      "basis": -0.002750981195192015,
+      "oiChange": 0.002403465667367932,
+      "globalRatio": 1.158,
+      "topRatio": 1.2143,
+      "takerRatio": 0.9814,
+      "priceRr": 3.9037290886954947,
+      "rrWithFunding": 3.9214435374487073,
+      "fundingCarryRate": 0.0005085479999999999,
+      "fundingCarryPerUnit": 0.0000628565328,
       "fundingSettlementCount": 1,
       "fundingIntervalHours": 4,
-      "nextFundingTime": 1788782400000,
+      "nextFundingTime": 1788796800000,
       "checks": {
         "abnormalFunding": true,
         "basisSupports": true,
         "trendAligned": false,
-        "rsiUsable": false,
+        "rsiUsable": true,
         "confirmation": false,
         "positioningSupports": false,
         "oiSupports": false,
         "priceRr": true,
         "rrWithFunding": true
       }
-    },
-    {
-      "symbol": "AKEUSDT",
-      "side": "LONG",
-      "qualified": false,
-      "funding": -0.00125544,
-      "basis": -0.0024928807153022925,
-      "oiChange": 0.0032089959338321705,
-      "globalRatio": 0.8054,
-      "topRatio": 0.645,
-      "takerRatio": 1.2358,
-      "priceRr": 4.010912322181739,
-      "rrWithFunding": 4.018816190269913,
-      "fundingCarryRate": 0.000753264,
-      "fundingCarryPerUnit": 0.000011662786512,
-      "fundingSettlementCount": 1,
-      "fundingIntervalHours": 4,
-      "nextFundingTime": 1788782400000,
-      "checks": {
-        "abnormalFunding": true,
-        "basisSupports": true,
-        "trendAligned": false,
-        "rsiUsable": false,
-        "confirmation": true,
-        "positioningSupports": true,
-        "oiSupports": true,
-        "priceRr": true,
-        "rrWithFunding": true
-      }
     }
   ],
   "tradifi": {
-    "lastRun": "2026-09-07T09:46:33.856Z",
+    "lastRun": "2026-09-07T15:19:06.108Z",
     "active": false,
     "skipped": "outside_us_premarket",
     "rankings": [],
     "analyses": []
   },
   "overnightTradifi": {
-    "lastRun": "2026-09-07T09:46:33.857Z",
-    "active": true,
-    "regime": "盘前",
-    "macro": {
-      "nqPrice": 0,
-      "nqChange1h": 0,
-      "nqFresh": false,
-      "oilPrice": 91.4800033569336,
-      "oilChange1h": 0.0013135151683485446,
-      "oilChange24h": -0.0020725953507881867,
-      "geopoliticalHeadlineCount": 14,
-      "headlineSample": [
-        "Export Controls on Advanced Materials Are Reshaping Global Tech Trade - Global Trade Magazine",
-        "Economic Compellence Beyond the Buyer: Targeting Iran’s Oil-Revenue Network in China - Small Wars Journal",
-        "Two Tankers Attacked on Midnight Run Through Hormuz - WSJ"
-      ],
-      "newsBias": {
-        "NVDA": 0,
-        "AMD": 0,
-        "AVGO": 0,
-        "TSM": 0,
-        "INTC": 0,
-        "QCOM": 0,
-        "ARM": 0,
-        "ASML": 0,
-        "MRVL": 0,
-        "AMAT": 0,
-        "LRCX": 0,
-        "SMH": 0,
-        "MU": -1,
-        "SNDK": 0,
-        "WDC": 0
-      },
-      "riskOff": true
-    },
-    "rankings": [
-      {
-        "symbol": "SNDKUSDT",
-        "equityTicker": "SNDK",
-        "volume": 485409482.037,
-        "funding": 0,
-        "fundingIntervalHours": 8
-      },
-      {
-        "symbol": "MUUSDT",
-        "equityTicker": "MU",
-        "volume": 140270162.6002,
-        "funding": 0.00010944,
-        "fundingIntervalHours": 8
-      }
-    ],
-    "analyses": [
-      {
-        "symbol": "SNDKUSDT",
-        "equityTicker": "SNDK",
-        "side": "LONG",
-        "qualified": false,
-        "regime": "盘前",
-        "funding": 0,
-        "fundingIntervalHours": 8,
-        "basis": 0.00020450764088142392,
-        "equityGap": 0.030544181445256724,
-        "equityAgeMinutes": 3466.6358,
-        "equityFresh": false,
-        "nqChange1h": 0,
-        "sectorBreadth": 1,
-        "oiChange": 0.0003037745047607121,
-        "globalRatio": 0.4601,
-        "topRatio": 0.4751,
-        "takerRatio": 1.8279,
-        "priceRr": 1.238452871621572,
-        "rrWithFunding": 1.238452871621572,
-        "fundingCarryRate": 0,
-        "checks": {
-          "referenceSupports": false,
-          "basisSupports": true,
-          "confirmation": false,
-          "rsiUsable": true,
-          "positioningSupports": true,
-          "oiSupports": false,
-          "fundingDirectionSupports": true,
-          "priceRr": false,
-          "rrWithFunding": false
-        }
-      },
-      {
-        "symbol": "MUUSDT",
-        "equityTicker": "MU",
-        "side": "LONG",
-        "qualified": false,
-        "regime": "盘前",
-        "funding": 0.00010944,
-        "fundingIntervalHours": 8,
-        "basis": -0.000838529586654535,
-        "equityGap": 0.0284546036750577,
-        "equityAgeMinutes": 3466.640083333333,
-        "equityFresh": false,
-        "nqChange1h": 0,
-        "sectorBreadth": 1,
-        "oiChange": 0.001496449305512293,
-        "globalRatio": 1.1119,
-        "topRatio": 1.1839,
-        "takerRatio": 0.4521,
-        "priceRr": 0.447705666233537,
-        "rrWithFunding": 0.447705666233537,
-        "fundingCarryRate": 0,
-        "checks": {
-          "referenceSupports": false,
-          "basisSupports": true,
-          "confirmation": false,
-          "rsiUsable": false,
-          "positioningSupports": false,
-          "oiSupports": false,
-          "fundingDirectionSupports": true,
-          "priceRr": false,
-          "rrWithFunding": false
-        }
-      }
-    ]
+    "lastRun": "2026-09-07T15:19:06.110Z",
+    "active": false,
+    "regime": "美股regular_session",
+    "analyses": []
   }
 }
